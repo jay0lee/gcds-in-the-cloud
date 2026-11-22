@@ -10,7 +10,7 @@ Run **Google Cloud Directory Sync (GCDS)** 100% serverlessly in **Google Cloud R
 
 Traditionally, running GCDS requires:
 1. Maintaining a dedicated on-premises Windows or Linux server with a desktop GUI (`config-manager`).
-2. Authorizing GCDS as a human **Super Admin** via 3-legged OAuth, leaving a long-lived refresh token encrypted with a machine-bound key (`~/.java/.userPrefs`) inside `sync-config.xml`.
+2. Authorizing GCDS as a human **Super Admin** via 3-legged OAuth, leaving a long-lived refresh token inside `sync-config.xml` protected only by a plaintext Java Preferences key (`HKCU\Software\JavaSoft\Prefs` in the Windows Registry or `~/.java/.userPrefs` on Linux) that is not hardware- or machine-bound—meaning anyone with access to the sync user's profile or VM backup can extract the key and decrypt the token.
 3. Manually running `upgrade-config -exportkeys` / `-importkeys` anytime the server changes.
 
 **`gcds-in-the-cloud` eliminates all three:**

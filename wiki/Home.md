@@ -13,7 +13,7 @@ Your **GCDS sync rules, LDAP queries, search bases, org-unit mappings, and safet
 | **Compute Infrastructure** | Dedicated Windows/Linux VM + OS/Java patching | Serverless **Cloud Run Job** (scales to **$0** between runs) |
 | **Google Workspace Auth** | Long-lived human **Super Admin 3-legged OAuth** refresh token | **Keyless GCP Service Account** assigned a least-privilege Workspace Admin Role |
 | **Domain-Wide Delegation** | Often abused if using SA keys | **Not required** (Service Account acts directly as itself via non-OAuth self-signed JWTs) |
-| **XML Encryption Keys** | Machine-locked `~/.java/.userPrefs` (`upgrade-config -exportkeys`) | **Automated in RAM (`/dev/shm`)** at container startup via `encrypt-util` |
+| **XML Encryption Keys** | Plaintext Java Preferences key in Windows Registry (`HKCU\Software\JavaSoft\Prefs`) or `~/.java/.userPrefs` (exportable, not machine-bound) | **Automated in RAM (`/dev/shm`)** at container startup via `encrypt-util` |
 | **Config Storage & Rollback** | Local XML file on `C:\` or `/etc` | Versioned **Google Cloud Storage** bucket (`gs://...`) with 1-click rollback |
 | **AD Bind Password** | Encrypted inside XML (requires GUI re-save to rotate) | Stored in **Secret Manager** (rotate anytime without touching XML) |
 | **Scheduling & Alerting** | Windows Task Scheduler / cron + legacy SMTP server | **Cloud Scheduler** + **Cloud Logging / Cloud Monitoring** alerts |
