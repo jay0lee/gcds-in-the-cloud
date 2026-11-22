@@ -1,0 +1,14 @@
+{
+  "universe_domain": "googleapis.com",
+  "type": "external_account",
+  "audience": "//iam.googleapis.com/projects/123456789012/locations/global/workloadIdentityPools/onprem-hw-pool/providers/x509-tpm-provider",
+  "subject_token_type": "urn:ietf:params:oauth:token-type:mtls",
+  "token_url": "https://sts.mtls.googleapis.com/v1/token",
+  "credential_source": {
+    "certificate": {
+      "use_default_certificate_config": true,
+      "trust_chain_path": "/etc/go-oauth-proxy/enterprise-intermediate-chain.pem"
+    }
+  },
+  "service_account_impersonation_url": "https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/proxy-broker@example-sec-project.iam.gserviceaccount.com:generateAccessToken"
+}

@@ -1,0 +1,78 @@
+# Production-grade declarative configuration for go-oauth-proxy
+# Plaintext downloaded Service Account JSON key files ("type": "service_account") are strictly rejected.
+
+server:
+  listen_connect: "127.0.0.1:8443"
+  listen_reverse: "127.0.0.1:8080"
+  allowed_hosts:
+    - "oauth2.googleapis.com"
+    - "accounts.google.com"
+    - "admin.googleapis.com"
+    - "pubsub.googleapis.com"
+    - "iamcredentials.googleapis.com"
+  passthrough_unmatched: false
+  require_proxy_auth: false
+  log_level: "info"
+
+ca:
+  cert_path: "./certs/local-root-ca.crt.pem"
+  key_id: "com.org.oauthproxy.ca.p256"
+  common_name: "go-oauth-proxy Local Root CA"
+  leaf_ttl: "24h"
+
+keystore:
+  # Supported hardware backends:
+  #   secure_enclave (macOS) | tpm2 (Linux/Windows) | windows_cng (Windows TPM) | pkcs11 (YubiKey/HSM) | cloud_hsm | ecp
+  backend: "secure_enclave"
+  dpop_key_id: "com.org.oauthproxy.dpop.p256"
+
+adc:
+  # Supported keyless ADC modes:
+  #   wif_x509_mtls (On-prem gold standard: hardware X.509 mTLS to sts.mtls.googleapis.com)
+  #   impersonate   (GCE Metadata / gcloud ADC + Service Account Impersonation)
+  #   default       (Ambient keyless Application Default Credentials)
+  mode: "impersonate"
+  impersonate_service_account: "proxy-broker@example-sec-project.iam.gserviceaccount.com"
+  scopes:
+    - "https://www.googleapis.com/auth/cloud-platform"
+
+clients:
+  gcds:
+    username: "gcds-local"
+    password_env: "GCDS_PROXY_PASSWORD"
+
+policies:
+  # 1) GCDS (Google Cloud Directory Sync) -> Strip 3-legged OAuth, emulate /token locally,
+  #    and authenticate to Google Workspace Admin SDK via keyless Service Account Domain-Wide Delegation.
+  - name: "gcds-workspace-directory-sync"
+    match_client: "gcds"
+    match_hosts:
+      - "admin.googleapis.com"
+    mode: "auth_replace"
+    strategy: "dwd_oauth"
+    service_account: "gcds-sync@example-sec-project.iam.gserviceaccount.com"
+    signing_method: "iam_sign_jwt"
+    dwd_subject: "workspace-sync-admin@corp.example.com"
+    enable_dpop: true
+    scopes:
+      - "https://www.googleapis.com/auth/admin.directory.user"
+      - "https://www.googleapis.com/auth/admin.directory.group"
+      - "https://www.googleapis.com/auth/admin.directory.orgunit"
+
+  # 2) GCP API Workload (e.g., Pub/Sub) -> Strip 3-legged OAuth and authenticate using
+  #    Service Account Without OAuth (https://developers.google.com/identity/protocols/oauth2/service-account#jwt-auth)
+  #    signed via keyless Google-managed keys (IAM signJwt) or hardware RSA-2048 key.
+  - name: "gcp-pubsub-jwt-auth-without-oauth"
+    match_hosts:
+      - "pubsub.googleapis.com"
+    mode: "auth_replace"
+    strategy: "jwt_auth"
+    service_account: "pubsub-publisher@example-app-project.iam.gserviceaccount.com"
+    signing_method: "iam_sign_jwt"
+
+  # 3) Default OAuth Apps -> Transparently upgrade 3-legged OAuth flows with hardware-bound RFC 9449 DPoP
+  - name: "default-transparent-dpop"
+    mode: "dpop_passthrough"
+    dpop:
+      enforcement: "enforce"
+      inject_auth_url_jkt: true

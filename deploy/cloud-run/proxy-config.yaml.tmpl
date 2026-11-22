@@ -1,0 +1,32 @@
+# Keyless Cloud Run proxy configuration for GCDS-in-the-Cloud
+# Uses the Cloud Run Job's attached GCP Service Account (granted a Workspace Delegated Admin Role)
+# to mint non-OAuth self-signed JWTs via IAM :signJwt, with ephemeral RAM-only CA keys.
+
+server:
+  listen_connect: "127.0.0.1:8443"
+  listen_reverse: "127.0.0.1:8080"
+  allowed_hosts:
+    - "oauth2.googleapis.com"
+    - "accounts.google.com"
+    - "www.google.com"
+    - "*.googleapis.com"
+
+ca:
+  cert_path: "/dev/shm/local-root-ca.crt.pem"
+
+keystore:
+  backend: "ephemeral_memory"
+  allow_ephemeral_keys: true
+
+adc:
+  mode: "default"
+
+policies:
+  - name: "gcds-delegated-admin-sa-jwt"
+    match_hosts:
+      - "*.googleapis.com"
+      - "www.google.com"
+    mode: "auth_replace"
+    strategy: "jwt_auth"
+    service_account: "${GCDS_SA_EMAIL}"
+    signing_method: "iam_sign_jwt"
